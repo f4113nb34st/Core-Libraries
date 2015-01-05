@@ -1,106 +1,98 @@
 package input;
 
 import java.awt.AWTEvent;
-import java.awt.AWTException;
 import java.awt.Cursor;
 import java.awt.MouseInfo;
 import java.awt.Point;
-import java.awt.Robot;
 import java.awt.Toolkit;
 import java.awt.event.AWTEventListener;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
-import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedList;
 import javax.swing.JFrame;
 import math.vector.IntVector2D;
 
+/**
+ * 
+ * A simple mouse listener class that is not tied to a specific JFrame.
+ * Performs a similar function to the Mouse class of JOGL.
+ * 
+ * @author F4113nb34st
+ *
+ */
 public class Mouse implements AWTEventListener
 {
+	
+	static
+	{
+		//register the base event listener
+		Toolkit.getDefaultToolkit().addAWTEventListener(new Mouse(), AWTEvent.MOUSE_MOTION_EVENT_MASK | AWTEvent.MOUSE_EVENT_MASK);
+	}
+	//list of Mouse listeners
+	private static LinkedList<MListener> listeners = new LinkedList<MListener>();
+	//set of currently-pressed buttons
+	private static final HashSet<Integer> down_buttons = new HashSet<Integer>();
+	
+	/**
+	 * Adds the given key listener.
+	 * @param listener The listener.
+	 */
+	public static void addListener(MListener listener)
+	{
+		listeners.add(listener);
+	}
+	
+	/**
+	 * Removes the given key listener.
+	 * @param listener The listener.
+	 */
+	public static void removeListener(MListener listener)
+	{
+		listeners.remove(listener);
+	}
+
+	//the previous mouse location
+	private static IntVector2D prevCoords = new IntVector2D();
+	//true if the mouse is locked
+	private static boolean lock = false;
+	//to coords the mouse is locked to
+	public static IntVector2D lockCoords;
+	
+	//the invisible cursor used for "hiding" the cursor
 	private static final Cursor invisible_cursor = Toolkit.getDefaultToolkit().createCustomCursor(new BufferedImage(3, 3, BufferedImage.TYPE_INT_ARGB), new Point(0, 0), "null");
 	static
 	{
-		px = getMouseX();
-		py = getMouseY();
-		Toolkit.getDefaultToolkit().addAWTEventListener(new Mouse(), AWTEvent.MOUSE_MOTION_EVENT_MASK | AWTEvent.MOUSE_EVENT_MASK);
-		try
-		{
-			robot = new Robot();
-		} catch(AWTException ex)
-		{
-			ex.printStackTrace();
-		}
+		//init the previous mouse location values
+		prevCoords.set(getMouseX(), getMouseY());
 	}
-	
-	private static MListener[] listeners = new MListener[0];
-	private static final boolean[] buttons = new boolean[3];
-	static
-	{
-		Arrays.fill(buttons, false);
-	}
-	
-	public static void addListener(MListener listener)
-	{
-		MListener[] newA = new MListener[listeners.length + 1];
-		System.arraycopy(listeners, 0, newA, 0, listeners.length);
-		newA[newA.length - 1] = listener;
-		listeners = newA;
-	}
-	
-	public static void addPriorityListener(MListener listener)
-	{
-		MListener[] newA = new MListener[listeners.length + 1];
-		System.arraycopy(listeners, 0, newA, 1, listeners.length);
-		newA[0] = listener;
-		listeners = newA;
-	}
-	
-	public static void removeListener(MListener listener)
-	{
-		int index = -1;
-		for(int i = 0; i < listeners.length; i++)
-		{
-			if(listeners[i] == listener)
-			{
-				index = i;
-				break;
-			}
-		}
-		if(index != -1)
-		{
-			
-			MListener[] newA = new MListener[listeners.length - 1];
-			System.arraycopy(listeners, 0, newA, 0, index);
-			System.arraycopy(listeners, index + 1, newA, index, newA.length - index);
-			listeners = newA;
-		}
-	}
-
-	private static int px;
-	private static int py;
-	//mouse locking info
-	private static boolean lock = false;
-	public static int trueX;
-	public static int trueY;
-	private static Robot robot;
-	private static HashSet<IntVector2D> robotMoves = new HashSet<IntVector2D>();
 	
 	@Override
 	public void eventDispatched(AWTEvent e)
 	{
-		if(e instanceof MouseEvent)
+		if(!listeners.isEmpty() && e instanceof MouseEvent)
 		{
-			int x = ((MouseEvent)e).getXOnScreen();
-			int y = ((MouseEvent)e).getYOnScreen();
-			int button = ((MouseEvent)e).getButton() - 1;
-			int dx = x - px;
-			int dy = y - py;
-			px = x;
-			py = y;
+			//get current coords
+			IntVector2D coords = IntVector2D.pool.get().set(((MouseEvent)e).getXOnScreen(), ((MouseEvent)e).getYOnScreen());
+			//get button
+			int button = ((MouseEvent)e).getButton();
+			//get delta x and y values
+			IntVector2D delta = IntVector2D.pool.get().set(coords).subtract(prevCoords);
 			
-			if((e.getID() == MouseEvent.MOUSE_MOVED || e.getID() == MouseEvent.MOUSE_DRAGGED) && robotMoves.remove(new IntVector2D(x, y)))
+			//if locked
+			if(lock)
 			{
-				return;
+				//if a robot move, ignore
+				if(coords.equals(lockCoords))
+				{
+					prevCoords.set(coords);
+					coords.dispose();
+					delta.dispose();
+					return;
+				}
+				//report old coords and move back
+				coords.subtract(delta);
+				InputAutomation.mouseMove(coords);
 			}
 			
 			switch(e.getID())
@@ -110,10 +102,7 @@ public class Mouse implements AWTEventListener
 					setButton(button, true);
 					for(MListener lis : listeners)
 					{
-						if(lis.mousePress(x, y, button))
-						{
-							break;
-						}
+						lis.mousePress(coords, button);
 					}
 					break;
 				}
@@ -122,10 +111,7 @@ public class Mouse implements AWTEventListener
 					setButton(button, false);
 					for(MListener lis : listeners)
 					{
-						if(lis.mouseRelease(x, y, button))
-						{
-							break;
-						}
+						lis.mouseRelease(coords, button);
 					}
 					break;
 				}
@@ -134,83 +120,109 @@ public class Mouse implements AWTEventListener
 				{
 					for(MListener lis : listeners)
 					{
-						if(lis.mouseMove(x, y, dx, dy))
-						{
-							break;
-						}
+						lis.mouseMove(coords, delta);
 					}
 					break;
 				}
 			}
 			
-			if(lock)
-			{
-				trueX += dx;
-				trueY += dy;
-				moveMouse(x - dx, y - dy);
-			}
+			prevCoords.set(coords);
+			coords.dispose();
+			delta.dispose();
 		}
 	}
 	
+	/**
+	 * Sets the state of the given button.
+	 * @param button The button.
+	 * @param down True if pressed, else false.
+	 */
 	private void setButton(int button, boolean down)
 	{
-		if(button >= 0 && button < buttons.length)
+		if(down)
 		{
-			buttons[button] = down;
+			down_buttons.add(button);
+		}else
+		{
+			down_buttons.remove(button);
 		}
 	}
 	
+	/**
+	 * Represents a Mouse Listener.
+	 */
 	public interface MListener
 	{
-		public boolean mousePress(int x, int y, int button);
+		/**
+		 * Called when a mouse button is pressed.
+		 * @param button The button pressed.
+		 */
+		public void mousePress(IntVector2D coords, int button);
 		
-		public boolean mouseRelease(int x, int y, int button);
+		/**
+		 * Called when a mouse button is released.
+		 * @param button The button released.
+		 */
+		public void mouseRelease(IntVector2D coords, int button);
 		
-		public boolean mouseMove(int x, int y, int dx, int dy);
+		/**
+		 * Called when the mouse is moved.
+		 * @param coords The new coords of the mouse.
+		 * @param delta The distance moved.
+		 */
+		public void mouseMove(IntVector2D coords, IntVector2D delta);
 	}
 	
+	/**
+	 * Hides the cursor within the given frame.
+	 * @param frame The frame.
+	 */
 	public static void hideCursor(JFrame frame)
 	{
 		frame.setCursor(invisible_cursor);
 	}
 	
+	/**
+	 * Sets the cursor to default within the given frame.
+	 * @param frame The frame.
+	 */
 	public static void defaultCursor(JFrame frame)
 	{
 		frame.setCursor(Cursor.getDefaultCursor());
 	}
 	
+	/**
+	 * Locks the mouse at the current coords while preserving mouse events.
+	 * @param l True to lock, false to unlock.
+	 */
 	public static void lockMouse(boolean l)
 	{
 		lock = l;
-		if(lock)
-		{
-			trueX = getMouseX();
-			trueY = getMouseY();
-		}else
-		{
-			moveMouse(trueX, trueY);
-		}
 	}
 	
-	public static void moveMouse(int x, int y)
-	{
-		robotMoves.add(new IntVector2D(x, y));
-		robot.mouseMove(x, y);
-	}
-	
+	/**
+	 * @return The x location of the mouse.
+	 */
 	public static int getMouseX()
 	{
 		return MouseInfo.getPointerInfo().getLocation().x;
 	}
 	
+	/**
+	 * @return The y location of the mouse.
+	 */
 	public static int getMouseY()
 	{
 		return MouseInfo.getPointerInfo().getLocation().y;
 	}
 	
+	/**
+	 * Returns the press state of the given button.
+	 * @param button The button to check.
+	 * @return True if pressed, else false.
+	 */
 	public static boolean buttonDown(int button)
 	{
-		if(button < 0 || button >= buttons.length) return false;
-		return buttons[button];
+		return down_buttons.contains(button);
 	}
 }

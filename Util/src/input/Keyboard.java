@@ -15,17 +15,20 @@ import java.util.LinkedList;
  * @author F4113nb34st
  *
  */
-public class Keyboard implements AWTEventListener
+public final class Keyboard implements AWTEventListener
 {
-	//add the base event listener with a key mask
 	static
 	{
+		//register the base event listener
 		Toolkit.getDefaultToolkit().addAWTEventListener(new Keyboard(), AWTEvent.KEY_EVENT_MASK);
 	}
 	//list of KeyBoard listeners
 	private static LinkedList<KListener> listeners = new LinkedList<KListener>();
 	//set of currently-pressed buttons
 	private static final HashSet<Integer> down_buttons = new HashSet<Integer>();
+	
+	//suppress the default constructor
+	private Keyboard(){}
 	
 	/**
 	 * Adds the given key listener.
@@ -48,7 +51,7 @@ public class Keyboard implements AWTEventListener
 	@Override
 	public void eventDispatched(AWTEvent e)
 	{
-		if(e instanceof KeyEvent)
+		if(!listeners.isEmpty() && e instanceof KeyEvent)
 		{
 			int button = ((KeyEvent)e).getKeyCode();
 			

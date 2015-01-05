@@ -5,52 +5,44 @@ import java.awt.Toolkit;
 import java.awt.event.AWTEventListener;
 import java.awt.event.KeyEvent;
 import java.util.HashSet;
+import java.util.LinkedList;
 
+/**
+ * 
+ * A simple keyboard listener class that is not tied to a specific JFrame.
+ * Performs a similar function to the Keyboard class of JOGL.
+ * 
+ * @author F4113nb34st
+ *
+ */
 public class Keyboard implements AWTEventListener
 {
+	//add the base event listener with a key mask
 	static
 	{
 		Toolkit.getDefaultToolkit().addAWTEventListener(new Keyboard(), AWTEvent.KEY_EVENT_MASK);
 	}
-	
-	private static KListener[] listeners = new KListener[0];
+	//list of KeyBoard listeners
+	private static LinkedList<KListener> listeners = new LinkedList<KListener>();
+	//set of currently-pressed buttons
 	private static final HashSet<Integer> down_buttons = new HashSet<Integer>();
 	
+	/**
+	 * Adds the given key listener.
+	 * @param listener The listener.
+	 */
 	public static void addListener(KListener listener)
 	{
-		KListener[] newA = new KListener[listeners.length + 1];
-		System.arraycopy(listeners, 0, newA, 0, listeners.length);
-		newA[newA.length - 1] = listener;
-		listeners = newA;
+		listeners.add(listener);
 	}
 	
-	public static void addPriorityListener(KListener listener)
-	{
-		KListener[] newA = new KListener[listeners.length + 1];
-		System.arraycopy(listeners, 0, newA, 1, listeners.length);
-		newA[0] = listener;
-		listeners = newA;
-	}
-	
+	/**
+	 * Removes the given key listener.
+	 * @param listener The listener.
+	 */
 	public static void removeListener(KListener listener)
 	{
-		int index = -1;
-		for(int i = 0; i < listeners.length; i++)
-		{
-			if(listeners[i] == listener)
-			{
-				index = i;
-				break;
-			}
-		}
-		if(index != -1)
-		{
-			
-			KListener[] newA = new KListener[listeners.length - 1];
-			System.arraycopy(listeners, 0, newA, 0, index);
-			System.arraycopy(listeners, index + 1, newA, index, newA.length - index);
-			listeners = newA;
-		}
+		listeners.remove(listener);
 	}
 
 	@Override
@@ -72,10 +64,7 @@ public class Keyboard implements AWTEventListener
 					setButton(button, true);
 					for(KListener lis : listeners)
 					{
-						if(lis.keyPress(button))
-						{
-							break;
-						}
+						lis.keyPress(button);
 					}
 					break;
 				}
@@ -84,10 +73,7 @@ public class Keyboard implements AWTEventListener
 					setButton(button, false);
 					for(KListener lis : listeners)
 					{
-						if(lis.keyRelease(button))
-						{
-							break;
-						}
+						lis.keyRelease(button);
 					}
 					break;
 				}
@@ -95,10 +81,7 @@ public class Keyboard implements AWTEventListener
 				{
 					for(KListener lis : listeners)
 					{
-						if(lis.keyTyped(((KeyEvent)e).getKeyChar()))
-						{
-							break;
-						}
+						lis.keyTyped(((KeyEvent)e).getKeyChar());
 					}
 					break;
 				}
@@ -106,6 +89,11 @@ public class Keyboard implements AWTEventListener
 		}
 	}
 	
+	/**
+	 * Sets the state of the given button.
+	 * @param button The button.
+	 * @param down True if pressed, else false.
+	 */
 	private void setButton(int button, boolean down)
 	{
 		if(down)
@@ -117,15 +105,36 @@ public class Keyboard implements AWTEventListener
 		}
 	}
 	
+	/**
+	 * Represents a Key Listener.
+	 */
 	public interface KListener
 	{
-		public boolean keyPress(int button);
+		/**
+		 * Called when a key is pressed.
+		 * @param button The button pressed. See {@link java.awt.event.KeyEvent KeyEvent} for codes.
+		 */
+		public void keyPress(int button);
 		
-		public boolean keyRelease(int button);
+		/**
+		 * Called when a key is released.
+		 * @param button The button released. See {@link java.awt.event.KeyEvent KeyEvent} for codes.
+		 */
+		public void keyRelease(int button);
 		
-		public boolean keyTyped(char c);
+		/**
+		 * Called when a key is typed. 
+		 * Differs from KeyPress in that it takes into account key combinations such as "shift + a" -> 'A'
+		 * @param c The char typed.
+		 */
+		public void keyTyped(char c);
 	}
 	
+	/**
+	 * Returns the press state of the given button.
+	 * @param button The button to check. See {@link java.awt.event.KeyEvent KeyEvent} for codes.
+	 * @return True if pressed, else false.
+	 */
 	public static boolean buttonDown(int button)
 	{
 		return down_buttons.contains(button);

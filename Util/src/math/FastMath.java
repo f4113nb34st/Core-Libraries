@@ -85,7 +85,7 @@ public class FastMath
     private static final int ATAN2_BITS2 = ATAN2_BITS << 1;
     private static final int ATAN2_MASK = ~(-1 << ATAN2_BITS2);
     private static final int ATAN2_COUNT = ATAN2_MASK + 1;
-    private static final int ATAN2_DIM = (int) Math.sqrt(ATAN2_COUNT);
+    private static final int ATAN2_DIM = (int)Math.sqrt(ATAN2_COUNT);
 
     private static final float INV_ATAN2_DIM_MINUS_1 = 1.0f / (ATAN2_DIM - 1);
 

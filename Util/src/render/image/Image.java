@@ -3,6 +3,7 @@ package render.image;
 import java.io.File;
 import java.io.IOException;
 import javax.imageio.ImageIO;
+import math.vector.Vector2D;
 import render.color.Color;
 
 /**
@@ -148,7 +149,7 @@ public abstract class Image
 	protected int clipX2;
 	protected int clipY2;
 	//viewport used by the rendering methods
-	protected Viewport view = new Viewport();
+	protected final Viewport view = new Viewport();
 	protected class Viewport
 	{
 		protected int minX;
@@ -323,19 +324,7 @@ public abstract class Image
 	 */
 	public void fill(Color color)
 	{
-		view.clear();
-		if(view.visible())
-		{
-			color = convertColor(color);
-			for(int x = view.minX; x <= view.maxX; x++)
-			{
-				for(int y = view.minY; y <= view.maxY; y++)
-				{
-					set(x, y, color);
-				}
-			}
-			color.dispose();
-		}
+		fillRect(0, 0, width, height, color);
 	}
 	
 	/**
@@ -354,10 +343,21 @@ public abstract class Image
 			color = convertColor(color);
 			for(int j = view.minY; j <= view.maxY; j++)
 			{
-				fillXScan(view.minX, view.maxX, j, color);
+				baseFillXScan(view.minX, view.maxX, j, color);
 			}
 			color.dispose();
 		}
+	}
+	
+	/**
+	 * Fills the given rectangle with the given color.
+	 * @param coords The coords of the origin.
+	 * @param dimensions The dimensions.
+	 * @param color The color.
+	 */
+	public void fillRect(Vector2D coords, Vector2D dimensions, Color color)
+	{
+		fillRect(coords.getIntX(), coords.getIntY(), dimensions.getIntX(), dimensions.getIntY(), color);
 	}
 	
 	/**
@@ -403,6 +403,18 @@ public abstract class Image
 	}
 	
 	/**
+	 * Fills the given rounded rectangle with the given color.
+	 * @param coords The coords of the origin.
+	 * @param dimensions The dimensions.
+	 * @param radii The rounding radii.
+	 * @param color The color.
+	 */
+	public void fillRoundedRect(Vector2D coords, Vector2D dimensions, Vector2D radii, Color color)
+	{
+		fillRoundedRect(coords.getIntX(), coords.getIntY(), dimensions.getIntX(), dimensions.getIntY(), radii.getDoubleX(), radii.getDoubleY(), color);
+	}
+	
+	/**
 	 * Fills the given ellipse with the given color.
 	 * @param x The x loc.
 	 * @param y The y loc.
@@ -416,6 +428,17 @@ public abstract class Image
 	}
 	
 	/**
+	 * Fills the given ellipse with the given color.
+	 * @param coords The coords of the origin.
+	 * @param dimensions The dimensions.
+	 * @param color The color.
+	 */
+	public void fillOval(Vector2D coords, Vector2D dimensions, Color color)
+	{
+		fillOval(coords.getIntX(), coords.getIntY(), dimensions.getIntX(), dimensions.getIntY(), color);
+	}
+	
+	/**
 	 * Fills the given circle with the given color.
 	 * @param x The center x loc.
 	 * @param y The center y loc.
@@ -425,5 +448,16 @@ public abstract class Image
 	public void fillCircle(int x, int y, int radius, Color color)
 	{
 		fillOval(x - radius, y - radius, radius * 2, radius * 2, color);
+	}
+	
+	/**
+	 * Fills the given circle with the given color.
+	 * @param coords The coords of the center.
+	 * @param radius The radius.
+	 * @param color The color.
+	 */
+	public void fillCircle(Vector2D coords, int radius, Color color)
+	{
+		fillCircle(coords.getIntX(), coords.getIntY(), radius * 2, color);
 	}
 }

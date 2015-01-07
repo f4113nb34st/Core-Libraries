@@ -59,7 +59,7 @@ public final class IntBackedImage extends Image
 		if(image.getType() != BufferedImage.TYPE_INT_ARGB)
 		{
 			BufferedImage old = image;
-			image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+			image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 			Graphics2D g2 = image.createGraphics();
 			g2.drawImage(old, 0, 0, null);
 			g2.dispose();
@@ -91,7 +91,7 @@ public final class IntBackedImage extends Image
 	{
 		width = w;
 		height = h;
-		buffer = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+		buffer = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
 		data = ((DataBufferInt)buffer.getRaster().getDataBuffer()).getData();
 		clearClip();
 	}
@@ -99,7 +99,7 @@ public final class IntBackedImage extends Image
 	@Override
 	public void set(int x, int y, Color color)
 	{
-		data[x + (y * width)] = ((color.getAlphaB() & 0xFF) << 24) + ((color.getRedB() & 0xFF) << 16) + ((color.getGreenB() & 0xFF) << 8) + (color.getBlueB() & 0xFF);
+		data[x + (y * width)] = intColor(color);
 	}
 
 	@Override
@@ -141,5 +141,28 @@ public final class IntBackedImage extends Image
 		{
 			super.blit(image);
 		}
+	}
+	
+	protected void baseFillXScan(int x1, int x2, int y, Color color)
+	{
+		int col = intColor(color);
+		for(int i = x1 + (y * width); i <= x2 + (y * width); i++)
+		{
+			data[i] = col;
+		}
+	}
+	
+	protected void baseFillYScan(int x, int y1, int y2, Color color)
+	{
+		int col = intColor(color);
+		for(int i = x + (y1 * width); i <= x + (y2 * width); i++)
+		{
+			data[i] = col;
+		}
+	}
+	
+	private static final int intColor(Color color)
+	{
+		return ((color.getAlphaB() & 0xFF) << 24) + ((color.getRedB() & 0xFF) << 16) + ((color.getGreenB() & 0xFF) << 8) + (color.getBlueB() & 0xFF);
 	}
 }

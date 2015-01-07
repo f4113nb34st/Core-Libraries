@@ -8,15 +8,15 @@ public interface Color extends Copyable
 {
 	public static final HashMap<Class<? extends Color>, ObjectPool<? extends Color>> pool_map = new HashMap<Class<? extends Color>, ObjectPool<? extends Color>>();
 	
-	public static final Color BLACK = new ByteARGB(255, 0, 0, 0);
-	public static final Color GREY = new ByteARGB(255, 128, 128, 128);
+	public static final Color BLACK = new ByteARGB(0, 0, 0, 255);
+	public static final Color GREY = new ByteARGB(128, 128, 128, 255);
 	public static final Color WHITE = new ByteARGB(255, 255, 255, 255);
-	public static final Color RED = new ByteARGB(255, 255, 0, 0);
-	public static final Color YELLOW = new ByteARGB(255, 255, 255, 0);
-	public static final Color GREEN = new ByteARGB(255, 0, 255, 0);
-	public static final Color TEAL = new ByteARGB(255, 0, 255, 255);
-	public static final Color BLUE = new ByteARGB(255, 0, 0, 255);
-	public static final Color MAGENTA = new ByteARGB(255, 255, 0, 255);
+	public static final Color RED = new ByteARGB(255, 0, 0, 255);
+	public static final Color YELLOW = new ByteARGB(255, 255, 0, 255);
+	public static final Color GREEN = new ByteARGB(0, 255, 0, 255);
+	public static final Color TEAL = new ByteARGB(0, 255, 255, 255);
+	public static final Color BLUE = new ByteARGB(0, 0, 255, 255);
+	public static final Color MAGENTA = new ByteARGB(255, 0, 255, 255);
 	
 	public boolean hasAlpha();
 	public boolean hasColor();
